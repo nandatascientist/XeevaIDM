@@ -1,4 +1,5 @@
-
+library(caret)
+library(tm)
 ########## Step #1: setting the script parameters ###############################
 
 set.seed(12345)
@@ -7,7 +8,8 @@ set.seed(12345)
 
 
 ## Read datafile into R memory as a R dataframe and name columns
-rawData<-read.csv("testamznfile.csv",stringsAsFactors=FALSE)
+rawData<-read.csv("c:\\idm\\amazon_supply_Demo_Output_03-07-15.csv",nrows=10000,
+                  stringsAsFactors=FALSE)
 
 names(rawData)<-c("productname","productid","specifications","features","description","image","URL","commodity","class","family","segment")
 
@@ -35,7 +37,7 @@ rawData$description<-NULL
 
 ## split the dataset by the classification level - segment and store the resulting 
 ## list for further downstream processing
-resultList<-split(rawData$text,rawData$segment,drop=TRUE)
+resultList<-split(rawData$text,rawData$class,drop=TRUE)
 
 counts<-sapply(resultList,length)
 idx<-which(counts>=10)
@@ -50,7 +52,7 @@ numDocs<-length(resultList)
 
 training<-list()
 testing<-list()
-trainingFraction<-0.9
+trainingFraction<-0.8
 
 for (i in 1:numDocs){
         
@@ -203,32 +205,56 @@ classifyItem<-function(itemText,trainedTfIdfMatrix){
 
 ## Define a test bed of data and store classification results
 
+t1<-Sys.time()
+
 testListSize<-length(testing)
 
 testBedvone<-data.frame()
 
 for (z in 1:testListSize){
         
-        listItem<-testing[[z]]
-        listItemLength<-length(listItem)
-        itemCategory<-rep(names(testing[z]),listItemLength)
-        testBedRows<-data.frame(itemCategory,listItem,stringsAsFactors=FALSE)
+        listOfItemInGroup<-testing[[z]]
+        numItemsInGroup<-length(listOfItemInGroup)
+        
+        numItemsToSample<-numItemsInGroup
+        
+        if(numItemsInGroup>10){
+                numItemsToSample<-10
+        }  
+        
+        idx<-sample(1:numItemsInGroup,numItemsToSample,replace=F)
+        itemCategory<-rep(names(testing[z]),numItemsToSample)
+        testBedRows<-data.frame(itemCategory,
+                                listOfItemInGroup[idx],stringsAsFactors=FALSE)
+        
         testBedvone<-rbind(testBedvone,testBedRows)
         
 }
 
 numTestExamples<-nrow(testBedvone)
 testBedvone$output<-c(" ")
+colnames(testBedvone)<-c("group","itemtext","output")
 
-#testBedvone$listItem[2]
-#testBedvone$itemCategory[2]
+#testBedvone$itemtext[2]
+#testBedvone$group[2]
 
-#classifyItem(testBedvone$listItem[2],tfIdfMatrix)
+#classifyItem(testBedvone$itemtext[2],tfIdfMatrix)
+
+t2<-Sys.time()
 
 for (ctr in 1:numTestExamples) {
         
-        testBedvone$output[ctr]<-classifyItem(testBedvone$listItem[ctr],tfIdfMatrix)
+        testBedvone$output[ctr]<-classifyItem(
+                testBedvone$itemtext[ctr],tfIdfMatrix)
         
 }
 
+testBedvone$group<-as.factor(testBedvone$group)
+testBedvone$output<-as.factor(testBedvone$output)
 
+confusionMatrix(testBedvone$output,testBedvone$group)$overall
+
+#t3<-Sys.time()
+
+#t2-t1
+#t3-t2
