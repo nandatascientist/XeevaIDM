@@ -1,12 +1,12 @@
 ---
-title: "Evaluation of VSM as a classification algorithm using Amazon.com data"
+title: "Evaluation of VSM as a classification algorithm using rich item  data"
 author: "Koushik Kumaraswamy"
 date: "Wednesday, Mar 12, 2015"
 output: pdf_document
 ---
 
 # Introduction
-In this report, we  evaluate the suitability and performance of the Vector Space Model, (referred to as VSM henceforth), as an item classification algorithm operating on  Amazon.com item data. This inquiry is relevant given that  VSM has traditionally been employed to solve  search problems but has not been employed for solving classification problems given the lack of an underlying theoritical  probability model.  
+In this report, we  evaluate the suitability and performance of the Vector Space Model, (referred to as VSM henceforth), as an item classification algorithm operating on  rich item data (i.e. item data with a lot of related attribution). This inquiry is relevant given that  VSM has traditionally been employed to solve  search problems but has not been employed for solving classification problems given the lack of an underlying theoritical  probability model.  
 
 The published test results cannot be used as-is to generalize algorithm performance on real-life PO and AP data sets, but instead serve to  establish a baseline level of performance  given fairly rich input data. This baseline will serve as a comparative datapoint for subsequent analyses that utilize real-life data. 
 
@@ -56,4 +56,4 @@ runResults
 From the table above, we observe that for 3 of the 4 classification levels, accuracy monotonically reduces with increased record count. The effect of granularity (i.e. number of groups) on accuracy seems less clear. This relationship seems to change based on record count and therefore is inconclusive. The latter is a less intutive finding. 
 
 # Conclusion and next steps
-In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that measure, we are able to conclude that VSM performs very well when trained and tested on rich item data. Subsequent analyses will need to quantify performance when VSM is employed on  just install-base data, as well as combination of rich and real-life data. An added step could  be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
+In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that measure, we are able to conclude that VSM performs very well when trained and tested on rich item data. Subsequent analyses will need to quantify performance when VSM is employed on  just Xeeva's existing customer data, as well as combination of rich and real-life data. An added step could  be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
