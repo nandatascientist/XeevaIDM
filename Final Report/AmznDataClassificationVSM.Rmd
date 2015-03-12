@@ -13,30 +13,30 @@ The published test results cannot be used as-is to generalize algorithm performa
 In addition to establishing baseline, another goal of this analysis is to observe changes in VSM  performance as number of records as well as  classification granularity are increased. 
 
 # Design of Experiment
-This  experiment was modeled after a traditional machine learning experiment with by treating VSM as a model for classification .  The experiment,designed per reproducible research standards, is outlined below: 
+This  experiment was modeled after a traditional machine learning experiment  by treating VSM as a model for classification .  The details of this analysis experiment, designed per reproducible research standards, is outlined below: 
 
 ## On model formulation
 The classification schema used in this analysis was UNSPSC with the following classification groups: Level 1:Segments [56], Level 2: Families [411], Level 3: Classes [3713], Level 4: Commodities [46137]. 
 
-The crux of this approach involves modeling each classification level as a "weighted bag of words" - i.e.  every level in the hierarchy is associated with a set of weights (numbers between 0 and 1) relative to a dictionary of words. More formally, a classification level is represented as a vector within n-dimensional vector space, where n is the number of words in the learned dictionary. The classification problem is then solved by representing a incoming new item (query) as another point in N-D space and assigning it to its  "nearest neighbour". The angular seperation between the vectors (computed through the vector dot product) is  distance measure used in this model. A larger dot product score indicates a higher rank or closeness to category vector. 
+The crux of this approach involves modeling each classification level as a "weighted bag of words" - i.e.  every level in the hierarchy is associated with a set of weights (numbers between 0 and 1) relative to a dictionary of words. More formally, a classification level is represented as a vector within n-dimensional vector space, where n is the number of words in the learned dictionary. The classification problem is then solved by representing a incoming new item (query) as another point in N-D space and assigning it to its  "nearest neighbour". The angular seperation between the vectors (computed through the vector dot product) is  distance measure used in this model. A larger dot product score indicates a higher rank or closeness to classification-group vector. 
 
 ## Raw Data acquisition and cleansing
 Raw Data  for this analysis came from the data scraping exercise that the Netlink team was contracted to perform. One CSV (comma seperated value) file with more than 399k records was chosen as the raw data source for this analysis. This file 
 was  downloaded from the Netlink FTP server, copied ,  and modified to include the UNSPSC codes for all four levels (by extracting this information from the item specification column).  The modified CSV data file was used as the input into R for this analysis. 
 
 ## Data pre-processing
-The modified input file was read into working memory as a dataframe object. The rows and Columns that  were  erroneous or not useful for downstream processing were dropped. The raw Data fields viz. item name , description, and item features were merged into a large text field which to denote a single item within the search space.This data was then segmented into groups of similar categories (based on  selected classification granularity).
+The modified input file was read into working memory as a dataframe object. The rows and columns that  were  erroneous or not useful for downstream processing were dropped. The Raw Data fields viz. Item Name , Description, and Item Features were merged into a large text field that represented a single item within the search space.This data was then segmented into groups of similar categories (based on  selected classification granularity).
 
 
 ## Training and Test set segmentation
-The previous step yielded a collected of objects, each of which denoted a set of items belonging to the same group. These items  were  randomly distributed  between a training set and a test set in the ratio of 80% to 20% . Groups that did not have a minimum records  were excluded from the downstream analysis. The intent of this step is to train the model on the *training set* records and to evaluate its performance on the *testing set*.
+The previous step yielded a collected of objects, each of which denoted a set of items belonging to the same group. These items  were  randomly distributed  between a training set and a test set in the ratio of 80% to 20% . Groups that did not have a defined minimum number of records,  were excluded from the downstream analysis. The intent of this step is to train the model on the *training set* records and to evaluate its performance on the *testing set*.
 
 
 ## Training the model 
-For VSM, training involved the creation of set of artificial documents, each representing a group within the selected classification hierarchy. A Corpus comprising of these artificial documents was then  created and normalized through various tranformations (conversion to lower case, stripping white space and removing punctuation). Stemming was not performed during this analysis. A term document matrix was then created using the  transformed corpus. This matrix and its associated dictionary represents the trained model for this analysis.
+For VSM, training involved the creation of set of artificial documents, each representing a group within the selected classification hierarchy. A Corpus comprising of these artificial documents was then  created and normalized through various tranformations (viz. conversion to lower case, stripping white space and removing punctuation). Stemming was not performed as part of this analysis. A term document matrix was then created using the  transformed corpus. This matrix and its associated dictionary represents the trained model for this analysis.
 
 ## Testing the model
-To get around computing power constraints of the analyst's computer, the test bed was created using a random sample of records from the testing data set. The constraint imposed on the sampling was to limit each item group's  representation to at most 10 instances inside the test subset. Each item in the test bed was presented to the model for classification and the result  recorded. As referenced in the formulation section, the output classification from the model corresponds to category that has the largest value from the dot product between query and categories. The performance of the model was quantified through a simple accuracy measure defined as [(# of correctly classified tests)/(# of total tests)]. 
+To get around computing power constraints of the analyst's computer, a test bed was created using a random sample of records from the testing data set. The constraint imposed on the sampling was to limit each item group's  representation to at most 10 instances inside the test subset. Each item in the test bed was presented to the model for classification and the result  recorded. As referenced in the formulation section, the output classification from the model corresponds to group that has the largest value from the dot product between query and group vectors. The performance of the model was quantified through a simple accuracy measure defined as [(# of correctly classified tests)/(# of total tests)]. 
 
 # Run structure
 The training and testing of the VSM model was performed in sequence for each classification level (from segment down to commodity) with increasing record counts. As the number of target groups in the data increased (specifically with larger record counts), the minimum  records threshold was correspondingly increased to maximize the  model's chance to *learn from the data*. 
@@ -44,8 +44,16 @@ The training and testing of the VSM model was performed in sequence for each cla
 # Run Results and analysis
 The result of the various runs are tabulated below:
 
+```{r runresults,echo=FALSE}
 
-From the table above, we can infer that the general tendency of the model is to deteriorate in performance (accuracy) with increase in granularity or increase in record count
+fileLocation<-"C:\\Users\\koushikk\\repos\\XeevaIDM\\AmazonDataRunBook.csv"
+runResults<-read.csv(fileLocation)
+runResults
+
+```
+
+
+From the table above, we observe that for 3 of the 4 classification levels, accuracy monotonically reduces with increased record count. The effect of granularity (i.e. number of groups) on accuracy seems less clear. This relationship seems to change based on record count and therefore is inconclusive. The latter is a less intutive finding. 
 
 # Conclusion and next steps
-In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that definition, we are able to conclude that VSM performs very well when tested on rich item data -.i.e. in the best case scenario. Subsequent analyses will need to quantify performance when trained and tested against just install-base data, as well as combination of rich and real-life data. An added step would be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
+In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that measure, we are able to conclude that VSM performs very well when trained and tested on rich item data. Subsequent analyses will need to quantify performance when VSM is employed on  just install-base data, as well as combination of rich and real-life data. An added step could  be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
