@@ -14,11 +14,12 @@ source("predictOutput.R")
 ## Set script parameters
 set.seed(12345) # for repeatability of random numbers 
 rawDatafileName<-"c:\\idm\\amazon_supply_Demo_Output_03-07-15.csv" # source file
-minimumRowsForTraining<-20 # min rows in data need to consider for training
+minimumRowsForTraining<-40 # min rows in data need to consider for training
 trainingSetFraction<-0.8 # amount of data set used for training Vs testing
-numRecords<-50000 #number of lines to read
+numRecords<-100000 #number of lines to read
 level<-4 # 1= Segment,2 = Family, 3 = Class, 4 = Commodity
 testsPerGroup<-10 # number of records per group that testing will be performed on
+runBookName<-"AmazonDataRunBook.csv" # name of file to record results
 
 ## get usable data from file
 p1<-Sys.time()
@@ -46,3 +47,12 @@ cat("From start to training completion:",as.double(p4-p1))
 cat("Just for testing:",as.double(p5-p4))
 
 predictions[[2]]$overall
+
+## write results into run book
+runResults<-paste(as.character(level),numRecords,
+                  length(testingSet),minimumRowsForTraining,
+                       predictions[[2]]$overall[1],
+                       as.double(difftime(p5,p1,units="mins")),sep=',')
+
+
+write.table(runResults,runBookName,append=TRUE,col.names=FALSE,quote=FALSE)

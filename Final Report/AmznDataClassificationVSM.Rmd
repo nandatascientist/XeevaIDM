@@ -1,298 +1,51 @@
 ---
+title: "Evaluation of VSM as a classification algorithm using Amazon.com data"
+author: "Koushik Kumaraswamy"
+date: "Wednesday, Mar 12, 2015"
 output: pdf_document
 ---
-Evaluation of VSM as a classification algorithm using Amazon.com data
-======================================================================
 
-In this report, we  quantify and evaluate the performance of the Vector Space Model, (referred to as VSM henceforth), as an item classification algorithm operating on  Amazon.com item data. It is important to note that VSM has traditionally been employed to solve  search problems but has not been employed for solving classification problems.  While these test results cannot be used as-is to generalize algorithm performance on real-life PO and AP data sets, it  helps to establish a baseline level of performance for VSM given fairly rich input data.Another goal of the experiment is to observe VSM classification performance as we  make the  classification hierarchy more granular per UNSPSC schema as follows:  
--  56 Segments [Level 1]
--  411 Families [Level 2]
--  3713 Classes [Level 3]
--  46137 Commodities [Level 4]
+# Introduction
+In this report, we  evaluate the suitability and performance of the Vector Space Model, (referred to as VSM henceforth), as an item classification algorithm operating on  Amazon.com item data. This inquiry is relevant given that  VSM has traditionally been employed to solve  search problems but has not been employed for solving classification problems given the lack of an underlying theoritical  probability model.  
 
-Conclusion: <plug in what we find here. If the performance is good, mention need for testing with fuzzy inputs. if not good ,mention need for model selection as next step.>
+The published test results cannot be used as-is to generalize algorithm performance on real-life PO and AP data sets, but instead serve to  establish a baseline level of performance  given fairly rich input data. This baseline will serve as a comparative datapoint for subsequent analyses that utilize real-life data. 
 
-The rest of the analysis is describes the details of the analysis which follows established data science  best-practices around reproducible research.
+In addition to establishing baseline, another goal of this analysis is to observe changes in VSM  performance as number of records as well as  classification granularity are increased. 
+
+# Design of Experiment
+This  experiment was modeled after a traditional machine learning experiment with by treating VSM as a model for classification .  The experiment,designed per reproducible research standards, is outlined below: 
+
+## On model formulation
+The classification schema used in this analysis was UNSPSC with the following classification groups: Level 1:Segments [56], Level 2: Families [411], Level 3: Classes [3713], Level 4: Commodities [46137]. 
+
+The crux of this approach involves modeling each classification level as a "weighted bag of words" - i.e.  every level in the hierarchy is associated with a set of weights (numbers between 0 and 1) relative to a dictionary of words. More formally, a classification level is represented as a vector within n-dimensional vector space, where n is the number of words in the learned dictionary. The classification problem is then solved by representing a incoming new item (query) as another point in N-D space and assigning it to its  "nearest neighbour". The angular seperation between the vectors (computed through the vector dot product) is  distance measure used in this model. A larger dot product score indicates a higher rank or closeness to category vector. 
 
 ## Raw Data acquisition and cleansing
-Raw Data  for this analysis came from the data scraping exercise that the Netlink team performed. The raw CSV (comma seperated value) files were downloaded from the Netlink FTP server, a copy made,  the UNSPSC codes for all four levels were extracted from the item specification column and added as a new columns back into the  CSV  file.  The modified CSV data file was used as the input into R for this analysis. 
+Raw Data  for this analysis came from the data scraping exercise that the Netlink team was contracted to perform. One CSV (comma seperated value) file with more than 399k records was chosen as the raw data source for this analysis. This file 
+was  downloaded from the Netlink FTP server, copied ,  and modified to include the UNSPSC codes for all four levels (by extracting this information from the item specification column).  The modified CSV data file was used as the input into R for this analysis. 
 
 ## Data pre-processing
+The modified input file was read into working memory as a dataframe object. The rows and Columns that  were  erroneous or not useful for downstream processing were dropped. The raw Data fields viz. item name , description, and item features were merged into a large text field which to denote a single item within the search space.This data was then segmented into groups of similar categories (based on  selected classification granularity).
 
-The modified input file is read into working memory. Rows and Columns that  are not useful for downstream processing are dropped. Data is split into groups of similar categories (for a selected level), and finally, the fields selected for use in modeling are all concatenated into documents.
 
+## Training and Test set segmentation
+The previous step yielded a collected of objects, each of which denoted a set of items belonging to the same group. These items  were  randomly distributed  between a training set and a test set in the ratio of 80% to 20% . Groups that did not have a minimum records  were excluded from the downstream analysis. The intent of this step is to train the model on the *training set* records and to evaluate its performance on the *testing set*.
 
-```{r preprocessdata,cache=TRUE,echo=TRUE}
 
-## Read datafile into R memory as a R dataframe and name columns
-rawData<-read.csv("testamznfile.csv",stringsAsFactors=FALSE)
+## Training the model 
+For VSM, training involved the creation of set of artificial documents, each representing a group within the selected classification hierarchy. A Corpus comprising of these artificial documents was then  created and normalized through various tranformations (conversion to lower case, stripping white space and removing punctuation). Stemming was not performed during this analysis. A term document matrix was then created using the  transformed corpus. This matrix and its associated dictionary represents the trained model for this analysis.
 
-names(rawData)<-c("productname","productid","specifications","features","description","image","URL","commodity","class","family","segment")
+## Testing the model
+To get around computing power constraints of the analyst's computer, the test bed was created using a random sample of records from the testing data set. The constraint imposed on the sampling was to limit each item group's  representation to at most 10 instances inside the test subset. Each item in the test bed was presented to the model for classification and the result  recorded. As referenced in the formulation section, the output classification from the model corresponds to category that has the largest value from the dot product between query and categories. The performance of the model was quantified through a simple accuracy measure defined as [(# of correctly classified tests)/(# of total tests)]. 
 
-## Change all classification codes into factors
-rawData$segment<-as.factor(rawData$segment)
-rawData$family<-as.factor(rawData$family)
-rawData$class<-as.factor(rawData$class)
-rawData$commodity<-as.factor(rawData$commodity)
+# Run structure
+The training and testing of the VSM model was performed in sequence for each classification level (from segment down to commodity) with increasing record counts. As the number of target groups in the data increased (specifically with larger record counts), the minimum  records threshold was correspondingly increased to maximize the  model's chance to *learn from the data*. 
 
-## clean the dataframe of Columns & Rows that we are not going use
-rawData$productid<-NULL
-rawData$specifications<-NULL
-rawData$image<-NULL
-rawData$URL<-NULL
+# Run Results and analysis
+The result of the various runs are tabulated below:
 
-dirtyRows<-which(rawData$segment=="#VALUE!")
-rawData<-rawData[-dirtyRows,]
 
-## concatenate the data we are going to use into one variable & drop individual fields
-rawData$text<-paste(rawData$productname,rawData$features,rawData$description, sep=" ")
+From the table above, we can infer that the general tendency of the model is to deteriorate in performance (accuracy) with increase in granularity or increase in record count
 
-rawData$productname<-NULL
-rawData$features<-NULL
-rawData$description<-NULL
-
-## split the dataset by the classification level - segment and store the resulting 
-## list for further downstream processing
-resultList<-split(rawData$text,rawData$segment,drop=TRUE)
-
-
-rm(rawData,dirtyRows)
-
-```
-
-## Data set segmentation into Training Set Vs  Test Set
-"resultList" above is a  list object that has as many elements as there are segments in the data. Each element of the list is a character vector with length equal to number of items that belong to that segment. In this section, we distribute  the records in each segment between a training set and a test set. The training set will be used to "train" the algorithm whereas the elements of test set will be used to check how well the algorithm performs.
-
-```{r datasegmentation,echo=TRUE,cache=TRUE}
-
-## initialize variables for splitting data into testing and training
-numDocs<-length(resultList)
-
-training<-list()
-testing<-list()
-minRows<-10
-trainingFraction<-0.8
-
-for (i in 1:numDocs){
-
-        numElements<-length(resultList[[i]])        
-        ## enforce that atleast minRows need to be there for training /testing
-        
-        if(numElements>=minRows){
-          
-                # calculate Number of training examples needed
-                numTrain<-round(trainingFraction*numElements,0) 
-                
-                # randomly select numTrain number of items 
-                idx<-sample(1:numElements,numTrain,replace=F)
-                
-                # add the randomly selected items to training and testing sets
-                training[[i]]<-paste(resultList[[i]][idx],collapse='')
-                testing[[i]]<-as.character(resultList[[i]][-idx])
-                
-        } else {
-                
-                # add empty elements to the testing and training sets 
-                # if threshold for number of elements are not met
-                
-                training[[i]]<-paste0("dummy",i)
-                testing[[i]]<-paste0("dummy",i)
-
-        }
-}
-
-names(training)<-names(resultList)
-names(testing)<-names(resultList)
-
-rm(resultList,numElements,minRows,trainingFraction,idx,i,numTrain)
-
-```
-
-
-## Training the algorithm 
-
-In the case of the VSM, training involves the creation of set of artificial documents, each representing a segment. A Corpus comprising of these artificial documents is then  created. The corpus is then normalized through various tranformations.
-
-```{r vsmtraining,echo=TRUE,cache=TRUE}
-
-library(tm)
-library(SnowballC)
-
-## A Corpus is created from the training set where each element of the list is one document that represents one segment
-
-docList<-VectorSource(training)
-documentCorpus<-Corpus(docList)
-
-## Punctuation is removed , white space is stripped, and lower case conversion is performed
-documentCorpus<-tm_map(documentCorpus,removePunctuation)
-documentCorpus<-tm_map(documentCorpus,tolower)
-documentCorpus<-tm_map(documentCorpus,stripWhitespace)
-
-## Optionally perform word stemming on corpus
-# segmentCorpus<-wordStem(segmentCorpus)
-
-## create sparse matrix by converting the document to Matrix
-termDocMatrix<-as.matrix(TermDocumentMatrix(documentCorpus))
-
-## store the number of terms and dictionary for use in testing
-numWords<-dim(termDocMatrix)[1]
-dictionaryOfTerms<-attributes(termDocMatrix)[[2]]$Terms
-
-## Define a function that computes tfidf weights from a term frequency vector 
-## and a document frequency scalar
-
-getTfIdfWeights<-function(tfVector,df){
-
-    weight = rep(0, length(tfVector)) # initialize weights to zero
-    weight[tfVector > 0] = (1 + log2(tfVector[tfVector > 0])) * log2(numDocs/df)
-    weight
-        
-}
-
-## Define a function returns the weights for every term vector
-
-getWeightsperTermVector<-function(tfIdfRow){
-        
-        termDf<-sum(tfIdfRow[1:numDocs]>0)
-        tdIdfVector<-getTfIdfWeights(tfIdfRow,termDf)
-        return(tdIdfVector)
-}
-
-
-## Obtain the Matrix that houses the weighted values for the term vectors
-tfIdfMatrix<-t(apply(termDocMatrix,c(1),FUN=getWeightsperTermVector))
-colnames(tfIdfMatrix)<-colnames(termDocMatrix)
-
-
-## Remove non numeric values - general cleanup
-tfIdfMatrix[which(!is.finite(tfIdfMatrix))]<-0
-
-## norm each vector to one
-tfIdfMatrix<-scale(tfIdfMatrix,center=FALSE,scale=
-                           sqrt(colSums(tfIdfMatrix^2)))
-
-rm(docList,documentCorpus,termDocMatrix)
-
-```
-
-## Testing VSM Performance
-
-
-```{r vsmtesting,cache=TRUE,echo=TRUE}
-
-library(tm)
-
-
-## Define a function that classifies  input itemText using a trained 
-## tfIdfMatrix
-
-classifyItem<-function(itemText,trainedTfIdfMatrix){
-        
-        ## create the input Vector by following the same pre-processing 
-        ## used in training
-        
-        queryList<-VectorSource(itemText)
-        testCorpus<-Corpus(queryList)
-        testCorpus<-tm_map(testCorpus,removePunctuation)
-        testCorpus<-tm_map(testCorpus,tolower)
-        testCorpus<-tm_map(testCorpus,stripWhitespace)
-
-        
-        ## Compute the termDocumentMatrix for the query 
-        termDocMatrixTest<- as.matrix(TermDocumentMatrix(testCorpus,
-                                control=list(dictionary=dictionaryOfTerms))  
-        )
-
-        
-        
-        
-        ## To compute the weights for terms, initialize to zero, and calculate
-        ## the weight for all non-zero occurence terms
-        queryTfIdf<-rep(0, numWords) 
-        
-        nDocs<-dim(trainedTfIdfMatrix)[2]
-        
-        for (l in 1:numWords){
-                
-                if(termDocMatrixTest[l]>0){
-                        
-                        queryTfIdf[l]<- 
-                                (1 + log2(termDocMatrixTest[l])) *
-                                         log2(nDocs)
-                        
-                }
-        
-                
-        }
-        
-        
-        ## clean-up any non numeric values
-        queryTfIdf[which(!is.finite(queryTfIdf))]<-0
-        
-        ## norm vector values to one as before
-        queryTfIdf<-scale(queryTfIdf,center=FALSE,scale=
-                                   sqrt(sum(queryTfIdf^2)))
-
-                
-        
-        ## compute the angle beween query and training vectors
-        queryscores<-t(queryTfIdf) %*% trainedTfIdfMatrix
-
-        ## rank in order of closeness
-        rd<-data.frame(doc=names(training),score=t(queryscores))
-        rd<-rd[order(rd$score,decreasing=TRUE),]
-
-        
-        return(as.character(rd[1,1]))
-}
-
-
-## Define a test bed of data and store classification results
-
-testListSize<-length(testing)
-
-testBed<-data.frame()
-
-for (z in 1:testListSize){
-        
-        listItem<-testing[[z]]
-        listItemLength<-length(listItem)
-        itemCategory<-rep(names(testing[z]),listItemLength)
-        testBedRows<-data.frame(itemCategory,listItem,stringsAsFactors=FALSE)
-        testBed<-rbind(testBed,testBedRows)
-        
-}
-
-numTestExamples<-nrow(testBed)
-
-testBed$output<-c(" ")
-
-for (ctr in 1:numTestExamples) {
-        
-        testBed$output[ctr]<-classifyItem(testBed$listItem[ctr],tfIdfMatrix)
-        
-}
-
-#testBed$output<-classifyItem(testBed$listItem,tfIdfMatrix)
-
-#sum(testBed$itemCategory!=testBed$output)
-
-```
-
-
-
-Exploratory data analysis
-Statistical prediction/modeling
-Interpret results
-
-
-
-## Results
-
-
-Exploratory data analysis
-Statistical prediction/modeling
-Interpret results
-Challenge results
-Synthesize/write up results
-Create reproducible code
+# Conclusion and next steps
+In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that definition, we are able to conclude that VSM performs very well when tested on rich item data -.i.e. in the best case scenario. Subsequent analyses will need to quantify performance when trained and tested against just install-base data, as well as combination of rich and real-life data. An added step would be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
