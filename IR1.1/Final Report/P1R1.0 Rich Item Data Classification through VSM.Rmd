@@ -1,5 +1,5 @@
 ---
-title: "Evaluation of VSM as a classification algorithm using rich item  data"
+title: "P1R1.0: Evaluation of VSM as a classification algorithm using rich item  data"
 author: "Koushik Kumaraswamy"
 date: "Wednesday, Mar 12, 2015"
 output: pdf_document
@@ -46,7 +46,7 @@ The result of the various runs are tabulated below:
 
 ```{r runresults,echo=FALSE}
 
-fileLocation<-"C:\\Users\\koushikk\\repos\\XeevaIDM\\AmazonDataRunBook.csv"
+fileLocation<-"C:\\Users\\koushikk\\repos\\XeevaIDM\\IR1.1\\AmazonDataRunBook.csv"
 runResults<-read.csv(fileLocation)
 runResults
 
