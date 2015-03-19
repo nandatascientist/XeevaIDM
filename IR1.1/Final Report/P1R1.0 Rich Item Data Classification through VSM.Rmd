@@ -45,15 +45,20 @@ The training and testing of the VSM model was performed in sequence for each cla
 The result of the various runs are tabulated below:
 
 ```{r runresults,echo=FALSE}
-
+options(warn=-1)
+library(ggplot2)
 fileLocation<-"C:\\Users\\koushikk\\repos\\XeevaIDM\\IR1.1\\AmazonDataRunBook.csv"
 runResults<-read.csv(fileLocation)
 runResults
 
+qplot(Num.Records,Accuracy,data=runResults,color=Level,geom="smooth",method="loess",main="Smooth Curve Classifier Characteristic")
+
+qplot(Num.Records,Accuracy,data=runResults,color=Level,geom="smooth",method="lm",main="Straight Line Classifier Characteristic")
 ```
 
 
-From the table above, we observe that for 3 of the 4 classification levels, accuracy monotonically reduces with increased record count. The effect of granularity (i.e. number of groups) on accuracy seems less clear. This relationship seems to change based on record count and therefore is inconclusive. The latter is a less intutive finding. 
+From the graph  above, it can be observed that the trend seems to be that  classifiers  perform worse with increased training data. The performance decay levels off for  3 of the 4 classification levels, with accuracy  starting off at  95+% and then reducing to level off between 87% and 89%. The highest level (i.e. segment) classifier alone decreases uniformly with increased record count. From this data, we can conclude that the classifiers perform worse with increase in training set size but more granular classfiers seems to deteriorate less.
 
 # Conclusion and next steps
-In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that measure, we are able to conclude that VSM performs very well when trained and tested on rich item data. Subsequent analyses will need to quantify performance when VSM is employed on  just Xeeva's existing customer data, as well as combination of rich and real-life data. An added step could  be to use Micro and Macro F1 scores as single number evaluation metric (in place of just accuracy).
+
+In general, a classification accuracy of 70% of better can be considered an acceptable performance threshold for a usable classifier. By that measure, we are able to conclude that VSM performs very well when trained and tested on rich item data. Subsequent analyses will need to quantify performance when VSM is employed on  just Xeeva's existing customer data, as well as combination of rich and real-life. 

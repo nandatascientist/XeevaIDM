@@ -3,25 +3,35 @@ classifyItem<-function(itemText,trainedModel){
         
         ## create the input Vector by following the same pre-processing 
         ## used in training
-        
-        
         queryList<-VectorSource(itemText)
         testCorpus<-Corpus(queryList)
         testCorpus<-tm_map(testCorpus,removePunctuation)
         testCorpus<-tm_map(testCorpus,tolower)
         testCorpus<-tm_map(testCorpus,stripWhitespace)
         
+        
+    
+        
         ## Extract model components for use
         trainedTfIdfMatrix<-trainedModel[[1]]
         dictionaryFromModel<-trainedModel[[2]]
         trainingData<-trainedModel[[4]]
+        numGroups<-length(trainingData)
         
         
         ## Compute the termDocumentMatrix for the query 
         termDocMatrixTest<- as.matrix(TermDocumentMatrix(testCorpus,
                                                          control=list(dictionary=dictionaryFromModel))  
         )
-        
+    
+        ## if no match is found, guess from list of names and return a value
+        if(sum(termDocMatrixTest)==0){
+                
+                print("error condition watchout!")
+                return(as.character(names(trainingData)[
+                        sample(1:numGroups,1,replace=FALSE)])) 
+                
+        }
         
         ## To compute the weights for terms, initialize to zero, and calculate
         ## the weight for all non-zero occurence terms
@@ -60,7 +70,7 @@ classifyItem<-function(itemText,trainedModel){
         
         ## rank in order of closeness
         matchLoc<-which.max(queryscores)        
-        
+                
         return(as.character(names(trainingData)[matchLoc]))
 }
 

@@ -13,13 +13,13 @@ source("predictOutput.R")
 
 ## Set script parameters
 set.seed(12345) # for repeatability of random numbers 
-rawDatafileName<-"c:\\idm\\amazon_supply_Demo_Output_03-07-15.csv" # source file
-minimumRowsForTraining<-40 # min rows in data need to consider for training
+rawDatafileName<-"c:\\idm\\PreProcessedInputP2R1.0.csv" # source file
+minimumRowsForTraining<-20 # min rows in data need to consider for training
 trainingSetFraction<-0.8 # amount of data set used for training Vs testing
-numRecords<-10000 #number of lines to read
-level<-4 # 1= Segment,2 = Family, 3 = Class, 4 = Commodity
+numRecords<-150000 #number of lines to read
+level<-2 # 1= Category,2 = Sub-Category
 testsPerGroup<-10 # number of records per group that testing will be performed on
-runBookName<-"AmazonDataRunBook.csv" # name of file to record results
+runBookName<-"XeevaClientDataRunBook.csv" # name of file to record results
 
 ## get usable data from file
 p1<-Sys.time()

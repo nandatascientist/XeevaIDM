@@ -43,11 +43,32 @@ predictOutput<-function(testDataSet,trainedModel,sampleSizePerGroup){
                 
                 # for each item in the test bed, perform classification using 
                 # trained model
-                
                 testBed$output[ctr]<-classifyItem(testBed$itemtext[ctr],
                                                   trainedModel)
                 
         }
+        
+        
+        ## check if there are groups in the prediction set not in the test set.
+        ## and if there are equalize the factor levels between prediction and 
+        ## test set by inserting dummy records for the missing levels
+        
+        groupDiff<-setdiff(testBed$group,testBed$output)
+        numMissingGroups<-length(groupDiff)
+        
+        if(numMissingGroups>0){
+                
+                for (cleanCtr in 1:numMissingGroups){
+                        
+                        testBed<-rbind(testBed,
+                                           c(groupDiff[cleanCtr],"dummy text",
+                                             c(groupDiff[cleanCtr])))        
+                }
+                
+        }
+        
+        
+        print("got here without troubles: test bed is ready" )
         
         # return updated test bed with associated confusion matrix
         return(list(testBed,
