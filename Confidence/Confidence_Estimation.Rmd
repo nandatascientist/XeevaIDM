@@ -1,0 +1,25 @@
+---
+title: "Fitting a Confidence Estimation Model"
+author: "Koushik Kumaraswamy"
+date: "Tuesday, May 12, 2015"
+output: html_document
+---
+
+## Project Background
+Xeeva's [Imperfect] Data Management team has tweaked the performance of its Vector Space Model to 85+% in controlled experiments. To enable  the model to function in a stand-alone mode in production, there is a need to reliably estimate whether the model's outputs can be relied on or not, or to create a *Confidence EStimator*.  This learned estimtator will guide Xeeva teams to either auto-classify a given record or not.
+
+The goal of this analysis is to arrive at a best performing estimator that reliably estimates Vector Space Mode's classification performance in real-life.
+
+
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
