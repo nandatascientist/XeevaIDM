@@ -17,13 +17,29 @@ getBestThreshold<-function(predictionValues,labels){
         
 }
 
-fitInZeroOneScale<-function(vectorvalues){
+fitInZeroOneScale<-function(vectorvalues,providedRange=0,providedMin=0){
         
         ## Scale and center the variables 
-        range<-max(vectorvalues)-min(vectorvalues)
-        minval<-min(vectorvalues)
-        t<-vectorvalues-minval
+        if(providedRange==0){
+                
+                range<-max(vectorvalues)-min(vectorvalues)        
+        } else {
+                
+                range<-providedRange
+        }
+        
+        if(providedMin==0){
+        
+                minVal<-min(vectorvalues)
+                
+        }else {
+                
+                minVal<-providedMin
+        }
+        
+        t<-vectorvalues-minVal
         output<-t/range       
         
-        output
+        returnVal<-list(output,range,minVal)
+        returnVal
 }
