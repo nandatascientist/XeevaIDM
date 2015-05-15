@@ -64,50 +64,45 @@ bglm1val<-predict(bglm1fit,newdata=cvData[,-8])
 obj<-fitInZeroOneScale(bglm1val)
 outputs<-obj[[1]]
 
-## Seek threshold that maximizes F1 score {given skewed classes}
-confidenceThreshold<-getBestThreshold(outputs,cvData$L3)
+## create predictions object
+pred<-prediction(outputs,cvData$L3)
 
-## Using threshold, convert prediction values to true classifications
-cvPredVector<-rep(0,length(outputs)) 
-cvPredVector[which(outputs>=confidenceThreshold)]<-1
+#######################################################################
+##### 4 - COMPARE VARIOUS PERFORMANCE MEASURES FOR THRESHOLD SELECTION
+######################################################################
 
-##  Compare Predictions to actual values or labels in cross validation set
-cvResults<-confusionMatrix(data=cvPredVector,cvData$L3,positive='1')
+## create various performance objects
+perff<-performance(pred,"f") 
+perfspec<-performance(pred,"spec") 
+perfsens<-performance(pred,"sens") 
+perfacc<-performance(pred,"acc") 
 
-## Output performance measures for the run
-cvResults[[3]][1] # Accuracy
-cvResults[[4]][1] # Sensitivity
-cvResults[[4]][2] # Specificity
-
-
-###################################################################
-##### 4 - CHECK GENERALIZATION ERROR OF MODEL ON TEST SET
-###################################################################
-
-## Using the trained model, get prediction values on test set examples 
-bglm2val<-predict(bglm1fit,newdata=testingData[,-8])
-
-## Scale the prediction values by the same range and min values obtained from
-## cross validation set
-obj2<-fitInZeroOneScale(bglm2val,obj[[2]],obj[[3]])
-testVal<-obj2[[1]]
-
-## Apply previously obtained threshold to convert values to true classifications
-testPredVector<-rep(0,length(testVal)) 
-testPredVector[which(testVal>=confidenceThreshold)]<-1
-
-## Compare actual results to predicted values
-testResults<-confusionMatrix(data=testPredVector,testingData$L3,positive='1')
-
-## Output performance measures for the run
-testResults[[3]][1] # Accuracy
-testResults[[4]][1] # Sensitivity
-testResults[[4]][2] # Specificity
+cutoffvalues<-perff@x.values[[1]] ## list of common cutoff values
 
 
-###################################################################
-##### 5 - EXTRACT MODEL COEFFICIENTS FOR OFFLINE USE
-###################################################################
+fdf<-data.frame(cutoff=cutoffvalues,
+                    type=rep('f',length(cutoffvalues)),
+                    value=perff@y.values[[1]])
+
+specdf<-data.frame(cutoff=cutoffvalues,
+                   type=rep('spec',length(cutoffvalues)),
+                   value=perfspec@y.values[[1]])
+
+sensdf<-data.frame(cutoff=cutoffvalues,
+                   type=rep('sens',length(cutoffvalues)),
+                   value=perfsens@y.values[[1]])
+
+
+accdf<-data.frame(cutoff=cutoffvalues,
+                  type=rep('acc',length(cutoffvalues)),
+                  value=perfacc@y.values[[1]])
+
+
+## assemble dataframe with all the values
+scoredf<-rbind(fdf,specdf,accdf,sensdf)
+
+## plot the values
+qplot(cutoff,value,data=scoredf,color=type)
 
 
 a<-bglm1fit$finalModel
